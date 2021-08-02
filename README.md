@@ -46,7 +46,7 @@ To use your own settings, create config file.
 
 ```php
 return [
-    'default'   => [
+    'math' => [
         'length'    => 5,
         'width'     => 120,
         'height'    => 36,
@@ -65,7 +65,7 @@ and enable it in `bootstrap/app.php`
 
 ### Stateless Mode:
 You get key and img from this url
-`http://localhost/captcha/default`
+`http://localhost/captcha?config=math`
 and verify the captcha using this method:
 ```php
     //key is the one that you got from json response
@@ -76,35 +76,22 @@ and verify the captcha using this method:
 ```php
 captcha();
 ```
-or
-```php
-Captcha::create();
-```
-
 
 # Return URL
 ```php
 captcha_src();
-```
-or
-```
-Captcha::src('default');
 ```
 
 # Return HTML
 ```php
 captcha_img();
 ```
-or
-```php
-Captcha::img();
-```
 
 # To use different configurations
 ```php
 captcha_img('flat');
 
-Captcha::img('inverse');
+captcha_img('inverse');
 ```
 etc.
 

@@ -2,11 +2,12 @@
 
 use Intervention\Image\ImageManager;
 
-if (!function_exists('captcha')) {
+if (! function_exists('captcha')) {
     /**
      * @param string $config
-     * @return array|ImageManager|mixed
+     *
      * @throws Exception
+     * @return array|ImageManager|mixed
      */
     function captcha(string $config = 'default')
     {
@@ -14,9 +15,10 @@ if (!function_exists('captcha')) {
     }
 }
 
-if (!function_exists('captcha_src')) {
+if (! function_exists('captcha_src')) {
     /**
      * @param string $config
+     *
      * @return string
      */
     function captcha_src(string $config = 'default'): string
@@ -25,10 +27,11 @@ if (!function_exists('captcha_src')) {
     }
 }
 
-if (!function_exists('captcha_img')) {
+if (! function_exists('captcha_img')) {
 
     /**
      * @param string $config
+     *
      * @return string
      */
     function captcha_img(string $config = 'default'): string
@@ -37,26 +40,28 @@ if (!function_exists('captcha_img')) {
     }
 }
 
-if (!function_exists('captcha_check')) {
+if (! function_exists('captcha_check')) {
     /**
+     * @param string $key
      * @param string $value
+     * @param string $config
+     *
      * @return bool
      */
-    function captcha_check(string $value): bool
+    function captcha_check(string $key, string $value, string $config = 'default'): bool
     {
-        return app('captcha')->check($value);
+        return app('captcha')->check($key, $value, $config);
     }
 }
 
-if (!function_exists('captcha_api_check')) {
+if (! function_exists('captcha_value')) {
     /**
-     * @param string $value
      * @param string $key
-     * @param string $config
-     * @return bool
+     *
+     * @return mixed
      */
-    function captcha_api_check(string $value, string $key, string $config = 'default'): bool
+    function captcha_value(string $key)
     {
-        return app('captcha')->check_api($value, $key, $config);
+        return app('captcha')->getValue($key);
     }
 }

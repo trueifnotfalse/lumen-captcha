@@ -1,9 +1,9 @@
 {
 	"name": "trueifnotfalse/lumen-captcha",
 	"type": "package",
-	"description": "Laravel 5 & 6 Captcha Package",
-	"keywords": ["laravel6 Captcha", "laravel6 Security", "laravel6 Captcha", "laravel5 Security", "Captcha"],
-	"homepage": "https://github.com/mewebstudio/captcha",
+	"description": "Laravel Lumen Captcha Package",
+	"keywords": ["Laravel Lumen Captcha", "Lumen Captcha", "Captcha"],
+	"homepage": "https://github.com/trueifnotfalse/lumen-captcha",
 	"license": "MIT",
 	"authors": [
 		{
@@ -11,36 +11,32 @@
 			"email": "me@mewebstudio.com",
 			"homepage": "https://github.com/mewebstudio",
 			"role": "Developer"
+		},
+		{
+			"name": "TrueIfNotFalse",
 		}
 	],
 	"require": {
 		"php": "^7.2|^8.0",
 		"ext-gd": "*",
-		"illuminate/config": "~5|^6|^7|^8",
-		"illuminate/filesystem": "~5|^6|^7|^8",
-		"illuminate/support": "~5|^6|^7|^8",
-		"illuminate/hashing": "~5|^6|^7|^8",
+		"laravel/lumen-framework": "^8",
+		"illuminate/config": "^8",
+		"illuminate/filesystem": "^8",
+		"illuminate/support": "^8",
+		"illuminate/hashing": "^8",
 		"intervention/image": "~2.5"
 	},
-	"require-dev": {
-		"phpunit/phpunit": "^8.5",
-		"mockery/mockery": "^1.0"
+	"suggest": {
+		"darkaonline/swagger-lume": "For OpenApi docs",
+		"pearl/lumen-request-validate": "For request validation"
 	},
 	"autoload": {
 		"psr-4": {
-			"Mews\\Captcha\\": "src/"
+			"TrueIfNotFalse\\LumenCaptcha\\": "src/"
 		},
 		"files": [
 			"src/helpers.php"
 		]
-	},
-	"autoload-dev": {
-		"classmap": [
-			"tests"
-		],
-		"psr-4": {
-			"Mews\\Test\\": "tests/"
-		}
 	},
 	"minimum-stability": "stable"
 }

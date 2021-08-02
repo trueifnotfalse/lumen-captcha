@@ -1,43 +1,66 @@
 <?php
 
-namespace Mews\Captcha;
+namespace TrueIfNotFalse\LumenCaptcha;
 
-use Exception;
-use Illuminate\Routing\Controller;
+use Laravel\Lumen\Http\Request;
+use Laravel\Lumen\Routing\Controller;
+
+// <editor-fold defaultstate="collapsed" desc="▼ Swagged Documentation method /captcha ▼">
+/**
+ * @OA\Get(
+ *     path="/captcha",
+ *     tags={"Captcha"},
+ *     summary="Captcha code",
+ *     description="Captcha code",
+ *     @OA\Parameter(
+ *         name="config",
+ *         in="query",
+ *         required=false,
+ *         example="default",
+ *         @OA\Schema(
+ *             type="string"
+ *         )
+ *      ),
+ *     @OA\Response(
+ *          response="200",
+ *          description="Captcha code",
+ *          @OA\MediaType(
+ *              mediaType="application/json",
+ *              @OA\Schema(
+ *                  @OA\Property(
+ *                      property="key",
+ *                      type="string",
+ *                      example="$2y$10$9do9wfk6AIR.0M4wKicCOeK9wA8rIUqBrHIv2QPzcbgLS0tlK/Ch6"
+ *                  ),
+ *                  @OA\Property(
+ *                      property="img",
+ *                      type="string",
+ *                      format="byte",
+ *                  )
+ *              )
+ *          )
+ *     ),
+ * )
+ */
+// </editor-fold>
 
 /**
  * Class CaptchaController
- * @package Mews\Captcha
+ *
+ * @package TrueIfNotFalse\LumenCaptcha
  */
 class CaptchaController extends Controller
 {
     /**
-     * get CAPTCHA
-     *
+     * @param Request $request
      * @param Captcha $captcha
-     * @param string $config
-     * @return array|mixed
-     * @throws Exception
+     *
+     * @return array
      */
-    public function getCaptcha(Captcha $captcha, string $config = 'default')
+    public function get(Request $request, Captcha $captcha): array
     {
-        if (ob_get_contents()) {
-            ob_clean();
-        }
+        $config = $request->get('config', 'default');
 
         return $captcha->create($config);
-    }
-
-    /**
-     * get CAPTCHA api
-     *
-     * @param Captcha $captcha
-     * @param string $config
-     * @return array|mixed
-     * @throws Exception
-     */
-    public function getCaptchaApi(Captcha $captcha, string $config = 'default')
-    {
-        return $captcha->create($config, true);
     }
 }

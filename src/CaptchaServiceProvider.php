@@ -1,14 +1,15 @@
 <?php
 
-namespace Mews\Captcha;
+namespace TrueIfNotFalse\LumenCaptcha;
 
-use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Factory;
+use Laravel\Lumen\Routing\Router;
 
 /**
  * Class CaptchaServiceProvider
- * @package Mews\Captcha
+ *
+ * @package TrueIfNotFalse\LumenCaptcha
  */
 class CaptchaServiceProvider extends ServiceProvider
 {
@@ -21,39 +22,31 @@ class CaptchaServiceProvider extends ServiceProvider
     {
         // Publish configuration files
         $this->publishes([
-            __DIR__ . '/../config/captcha.php' => config_path('captcha.php')
+            __DIR__ . '/../config/captcha.php' => app()->configPath('captcha.php'),
         ], 'config');
 
-        // HTTP routing
-        if (strpos($this->app->version(), 'Lumen') !== false) {
-            /* @var Router $router */
-            $router = $this->app;
-            $router->get('captcha[/api/{config}]', 'Mews\Captcha\LumenCaptchaController@getCaptchaApi');
-            $router->get('captcha[/{config}]', 'Mews\Captcha\LumenCaptchaController@getCaptcha');
-        } else {
-            /* @var Router $router */
-            $router = $this->app['router'];
-            if ((double)$this->app->version() >= 5.2) {
-                $router->get('captcha/api/{config?}', '\Mews\Captcha\CaptchaController@getCaptchaApi')->middleware('web');
-                $router->get('captcha/{config?}', '\Mews\Captcha\CaptchaController@getCaptcha')->middleware('web');
-            } else {
-                $router->get('captcha/api/{config?}', '\Mews\Captcha\CaptchaController@getCaptchaApi');
-                $router->get('captcha/{config?}', '\Mews\Captcha\CaptchaController@getCaptcha');
-            }
-        }
+        $this->bootValidationTranslation();
+
+        /* @var Router $router */
+        $router = $this->app->router;
+
+        $router->get('captcha[/{config}]', '\TrueIfNotFalse\LumenCaptcha\CaptchaController@get');
 
         /* @var Factory $validator */
         $validator = $this->app['validator'];
 
         // Validator extensions
         $validator->extend('captcha', function ($attribute, $value, $parameters) {
-            return captcha_check($value);
-        });
+            return captcha_check($parameters[0], $value, $parameters[1] ?? 'default');
+        }, trans('lumen-captcha::validation.captcha'));
+    }
 
-        // Validator extensions
-        $validator->extend('captcha_api', function ($attribute, $value, $parameters) {
-            return captcha_api_check($value, $parameters[0], $parameters[1] ?? 'default');
-        });
+    /**
+     * @return void
+     */
+    private function bootValidationTranslation(): void
+    {
+        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'lumen-captcha');
     }
 
     /**
@@ -75,7 +68,6 @@ class CaptchaServiceProvider extends ServiceProvider
                 $app['Illuminate\Filesystem\Filesystem'],
                 $app['Illuminate\Contracts\Config\Repository'],
                 $app['Intervention\Image\ImageManager'],
-                $app['Illuminate\Session\Store'],
                 $app['Illuminate\Hashing\BcryptHasher'],
                 $app['Illuminate\Support\Str']
             );

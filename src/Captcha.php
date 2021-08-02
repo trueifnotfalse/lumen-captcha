@@ -1,36 +1,22 @@
 <?php
 
-namespace Mews\Captcha;
-
-/**
- * Laravel 5 & 6 Captcha package
- *
- * @copyright Copyright (c) 2015 MeWebStudio
- * @version 2.x
- * @author Muharrem ERİN
- * @contact me@mewebstudio.com
- * @web http://www.mewebstudio.com
- * @date 2015-04-03
- * @license http://www.opensource.org/licenses/mit-license.php The MIT License
- */
+namespace TrueIfNotFalse\LumenCaptcha;
 
 use Exception;
 use Illuminate\Contracts\Config\Repository;
-use Illuminate\Hashing\BcryptHasher as Hasher;
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Http\File;
+use Illuminate\Hashing\BcryptHasher as Hasher;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Intervention\Image\Gd\Font;
 use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
-use Illuminate\Session\Store as Session;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 
 /**
  * Class Captcha
- * @package Mews\Captcha
+ *
+ * @package TrueIfNotFalse\LumenCaptcha
  */
 class Captcha
 {
@@ -48,11 +34,6 @@ class Captcha
      * @var ImageManager
      */
     protected $imageManager;
-
-    /**
-     * @var Session
-     */
-    protected $session;
 
     /**
      * @var Hasher
@@ -120,11 +101,6 @@ class Captcha
     protected $characters;
 
     /**
-     * @var array
-     */
-    protected $text;
-
-    /**
      * @var int
      */
     protected $contrast = 0;
@@ -182,22 +158,22 @@ class Captcha
     /**
      * @var int
      */
-    protected $expire = 60;
+    protected $expire = 600;
 
     /**
      * @var bool
      */
-    protected $encrypt = true;
-    
+    protected $disposable = true;
+
     /**
      * Constructor
      *
-     * @param Filesystem $files
-     * @param Repository $config
+     * @param Filesystem   $files
+     * @param Repository   $config
      * @param ImageManager $imageManager
-     * @param Session $session
-     * @param Hasher $hasher
-     * @param Str $str
+     * @param Hasher       $hasher
+     * @param Str          $str
+     *
      * @throws Exception
      * @internal param Validator $validator
      */
@@ -205,22 +181,30 @@ class Captcha
         Filesystem $files,
         Repository $config,
         ImageManager $imageManager,
-        Session $session,
         Hasher $hasher,
         Str $str
     ) {
-        $this->files = $files;
-        $this->config = $config;
-        $this->imageManager = $imageManager;
-        $this->session = $session;
-        $this->hasher = $hasher;
-        $this->str = $str;
-        $this->characters = config('captcha.characters', ['1', '2', '3', '4', '6', '7', '8', '9']);
-        $this->fontsDirectory = config('captcha.fontsDirectory',  dirname(__DIR__) . '/assets/fonts');
+        $this->files          = $files;
+        $this->config         = $config;
+        $this->imageManager   = $imageManager;
+        $this->hasher         = $hasher;
+        $this->str            = $str;
+        $this->characters     = config('captcha.characters', [
+            '1',
+            '2',
+            '3',
+            '4',
+            '6',
+            '7',
+            '8',
+            '9',
+        ]);
+        $this->fontsDirectory = config('captcha.fontsDirectory', dirname(__DIR__) . '/assets/fonts');
     }
 
     /**
      * @param string $config
+     *
      * @return void
      */
     protected function configure($config)
@@ -236,28 +220,19 @@ class Captcha
      * Create captcha image
      *
      * @param string $config
-     * @param bool $api
-     * @return array|mixed
+     *
      * @throws Exception
+     *
+     * @return array
      */
-    public function create(string $config = 'default', bool $api = false)
+    public function create(string $config = 'default'): array
     {
         $this->backgrounds = $this->files->files(__DIR__ . '/../assets/backgrounds');
-        $this->fonts = $this->files->files($this->fontsDirectory);
-
-        if (version_compare(app()->version(), '5.5.0', '>=')) {
-            $this->fonts = array_map(function ($file) {
-                /* @var File $file */
-                return $file->getPathName();
-            }, $this->fonts);
-        }
-
-        $this->fonts = array_values($this->fonts); //reset fonts array index
+        $this->fonts       = array_values($this->files->files($this->fontsDirectory));
 
         $this->configure($config);
 
         $generator = $this->generate();
-        $this->text = $generator['value'];
 
         $this->canvas = $this->imageManager->canvas(
             $this->width,
@@ -279,7 +254,7 @@ class Captcha
             $this->image->contrast($this->contrast);
         }
 
-        $this->text();
+        $this->text($generator['text']);
 
         $this->lines();
 
@@ -293,15 +268,12 @@ class Captcha
             $this->image->blur($this->blur);
         }
 
-        if ($api) {
-            Cache::put($this->get_cache_key($generator['key']), $generator['value'], $this->expire);
-        }
+        $this->putToCache($generator['key'], $generator['value']);
 
-        return $api ? [
-            'sensitive' => $generator['sensitive'],
+        return [
             'key' => $generator['key'],
-            'img' => $this->image->encode('data-url')->encoded
-        ] : $this->image->response('png', $this->quality);
+            'img' => $this->image->encode('data-url')->encoded,
+        ];
     }
 
     /**
@@ -317,55 +289,46 @@ class Captcha
     /**
      * Generate captcha text
      *
-     * @return array
      * @throws Exception
+     *
+     * @return array
      */
     protected function generate(): array
     {
         $characters = is_string($this->characters) ? str_split($this->characters) : $this->characters;
-
-        $bag = [];
+        $bag        = [];
 
         if ($this->math) {
-            $x = random_int(10, 30);
-            $y = random_int(1, 9);
-            $bag = "$x + $y = ";
-            $key = $x + $y;
-            $key .= '';
+            $x     = random_int(10, 30);
+            $y     = random_int(1, 9);
+            $bag   = "$x + $y = ";
+            $value = $x + $y;
         } else {
             for ($i = 0; $i < $this->length; $i++) {
-                $char = $characters[rand(0, count($characters) - 1)];
+                $char  = $characters[rand(0, count($characters) - 1)];
                 $bag[] = $this->sensitive ? $char : $this->str->lower($char);
             }
-            $key = implode('', $bag);
+            $value = implode('', $bag);
         }
 
-        $hash = $this->hasher->make($key);
-        if($this->encrypt) $hash = Crypt::encrypt($hash);
-        
-        $this->session->put('captcha', [
-            'sensitive' => $this->sensitive,
-            'key' => $hash,
-            'encrypt' => $this->encrypt
-        ]);
-
         return [
-            'value' => $bag,
-            'sensitive' => $this->sensitive,
-            'key' => $hash
+            'value' => (string)$value,
+            'text'  => $bag,
+            'key'   => $this->hasher->make(microtime(true)),
         ];
     }
 
     /**
      * Writing captcha text
      *
+     * @param array $text
+     *
      * @return void
      */
-    protected function text(): void
+    protected function text(array $text): void
     {
         $marginTop = $this->image->height() / $this->length;
 
-        $text = $this->text;
         if (is_string($text)) {
             $text = str_split($text);
         }
@@ -412,7 +375,7 @@ class Captcha
      */
     protected function fontColor(): string
     {
-        if (!empty($this->fontColors)) {
+        if (! empty($this->fontColors)) {
             $color = $this->fontColors[rand(0, count($this->fontColors) - 1)];
         } else {
             $color = '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
@@ -455,70 +418,47 @@ class Captcha
     }
 
     /**
-     * Captcha check
-     *
-     * @param string $value
-     * @return bool
-     */
-    public function check(string $value): bool
-    {
-        if (!$this->session->has('captcha')) {
-            return false;
-        }
-
-        $key = $this->session->get('captcha.key');
-        $sensitive = $this->session->get('captcha.sensitive');
-        $encrypt = $this->session->get('captcha.encrypt');
-
-        if (!$sensitive) {
-            $value = $this->str->lower($value);
-        }
-
-        if($encrypt) $key = Crypt::decrypt($key);
-        $check = $this->hasher->check($value, $key);
-        // if verify pass,remove session
-        if ($check) {
-            $this->session->remove('captcha');
-        }
-
-        return $check;
-    }
-    
-    /**
      * Returns the md5 short version of the key for cache
      *
      * @param string $key
+     *
      * @return string
      */
-    protected function get_cache_key($key) {
+    protected function getCacheKey(string $key): string
+    {
         return 'captcha_' . md5($key);
-    }    
+    }
 
     /**
      * Captcha check
      *
-     * @param string $value
      * @param string $key
+     * @param string $value
      * @param string $config
+     *
      * @return bool
      */
-    public function check_api($value, $key, $config = 'default'): bool
+    public function check(string $key, string $value, string $config = 'default'): bool
     {
-        if (!Cache::pull($this->get_cache_key($key))) {
+        $this->configure($config);
+
+        $valueFromCache = $this->disposable ? $this->pullFromCache($key) : $this->getFromCache($key);
+        if (empty($valueFromCache)) {
             return false;
         }
 
-        $this->configure($config);
+        if (! $this->sensitive) {
+            $value = $this->str->lower($value);
+        }
 
-        if(!$this->sensitive) $value = $this->str->lower($value);
-        if($this->encrypt) $key = Crypt::decrypt($key);
-        return $this->hasher->check($value, $key);
+        return $valueFromCache === $value;
     }
 
     /**
      * Generate captcha image source
      *
      * @param string $config
+     *
      * @return string
      */
     public function src(string $config = 'default'): string
@@ -530,8 +470,9 @@ class Captcha
      * Generate captcha image html tag
      *
      * @param string $config
-     * @param array $attrs
+     * @param array  $attrs
      * $attrs -> HTML attributes supplied to the image tag where key is the attribute and the value is the attribute value
+     *
      * @return string
      */
     public function img(string $config = 'default', array $attrs = []): string
@@ -545,6 +486,48 @@ class Captcha
 
             $attrs_str .= $attr . '="' . $value . '" ';
         }
+
         return new HtmlString('<img src="' . $this->src($config) . '" ' . trim($attrs_str) . '>');
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function getValue(string $key)
+    {
+        return $this->getFromCache($key);
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return mixed
+     */
+    protected function getFromCache(string $key)
+    {
+        return Cache::get($this->getCacheKey($key));
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return mixed
+     */
+    protected function pullFromCache(string $key)
+    {
+        return Cache::pull($this->getCacheKey($key));
+    }
+
+    /**
+     * @param string $key
+     * @param string $value
+     *
+     * @return void
+     */
+    protected function putToCache(string $key, string $value): void
+    {
+        Cache::put($this->getCacheKey($key), $value, $this->expire);
     }
 }

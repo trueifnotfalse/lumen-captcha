@@ -321,11 +321,11 @@ class Captcha
     /**
      * Writing captcha text
      *
-     * @param array $text
+     * @param array|string $text
      *
      * @return void
      */
-    protected function text(array $text): void
+    protected function text($text): void
     {
         $marginTop = $this->image->height() / $this->length;
 

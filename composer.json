@@ -19,11 +19,11 @@
 	"require": {
 		"php": "^7.2|^8.0",
 		"ext-gd": "*",
-		"laravel/lumen-framework": "^8",
-		"illuminate/config": "^8",
-		"illuminate/filesystem": "^8",
-		"illuminate/support": "^8",
-		"illuminate/hashing": "^8",
+		"laravel/lumen-framework": "^8|^9",
+		"illuminate/config": "^8|^9",
+		"illuminate/filesystem": "^8|^9",
+		"illuminate/support": "^8|^9",
+		"illuminate/hashing": "^8|^9",
 		"intervention/image": "~2.5"
 	},
 	"suggest": {
